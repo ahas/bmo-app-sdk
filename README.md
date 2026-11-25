@@ -16,11 +16,10 @@ application), `docs/manifest.md` (the manifest and its readings), `docs/install.
 
 | Folder | What it holds |
 |---|---|
-| `crates/service` | The library `bmo-app-service`: the answer envelope, the serving loop, the health checks |
-| `crates/declare` | The generator binary `bmo-app-declare`: an application's manifest read, its declarations written |
-| `templates/` | The text the units, the removal script, the web check and the web defaults are made of |
-| `bin/` | The scaffold that stands a new application up and the generator's build |
-| `docs/` | The base's own documents: design, manifest, install, removal, service, web |
+| `crates` | The two Rust crates: `service`, the library every application binary stands on, and `declare`, the generator that reads a manifest and writes its declarations |
+| `templates` | The text the units, the removal script, the web check and the web defaults are made of |
+| `bin` | The scaffold that stands a new application up and the generator's build |
+| `docs` | The base's own documents: design, manifest, install, removal, service, web |
 
 ## This repository's own checks
 
