@@ -26,15 +26,19 @@ for arg in "$@"; do
   esac
 done
 
-# A path this script may take away: only the application's own roots, stated whole.
+# A path this script may take away: only a root under the home's share folder or /srv/, and
+# never the parent itself, which would take every application's tree at once.
 guard() {
-  case "$1" in
-    "$HOME/.local/share/"???* | /srv/*???*) : ;;
-    *)
-      echo "remove-$NAME: refusing to touch: $1" >&2
-      exit 3
-      ;;
+  root="$1"
+  ok=0
+  case "$root" in
+    "$HOME/.local/share/"*) ok=1 ;;
+    /srv/*) ok=1 ;;
   esac
+  if [ "$ok" != 1 ]; then
+    echo "remove-$NAME: refusing to touch: $root" >&2
+    exit 3
+  fi
 }
 
 step() {

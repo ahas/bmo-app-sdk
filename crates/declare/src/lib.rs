@@ -224,13 +224,13 @@ pub fn render(manifest: &Manifest) -> Vec<Generated> {
             executable: true,
         },
     ];
-    if manifest.web.is_some() {
+    if let Some(web) = &manifest.web {
         files.push(Generated {
             path: format!(
                 "deploy/{}",
-                manifest.pages_unit().expect("a web app's pages unit")
+                manifest.pages_unit().expect("a web app has a pages unit")
             ),
-            content: render_pages_unit(manifest),
+            content: render_pages_unit(manifest, web),
             executable: false,
         });
         files.push(Generated {
@@ -240,7 +240,7 @@ pub fn render(manifest: &Manifest) -> Vec<Generated> {
         });
         files.push(Generated {
             path: "web/app-defaults.mjs".into(),
-            content: render_app_defaults(manifest),
+            content: render_app_defaults(manifest, web),
             executable: false,
         });
     }
@@ -404,9 +404,8 @@ fn render_service_unit(m: &Manifest) -> String {
     out
 }
 
-fn render_pages_unit(m: &Manifest) -> String {
+fn render_pages_unit(m: &Manifest, web: &Web) -> String {
     let (deploy_home, _) = m.home_paths();
-    let web = m.web.as_ref().expect("a pages unit stands for a web app");
     let mut out = format!(
         "# Generated from bmo-app.toml by bmo-app-sdk's bmo-app-declare.\n\
          # The {name} page server: the web app rendered on the server, run by Bun on the loopback,\n\
@@ -431,8 +430,7 @@ fn render_pages_unit(m: &Manifest) -> String {
     out
 }
 
-fn render_app_defaults(m: &Manifest) -> String {
-    let web = m.web.as_ref().expect("defaults stand for a web app");
+fn render_app_defaults(m: &Manifest, web: &Web) -> String {
     include_str!("../../../templates/app-defaults.mjs")
         .replace("@@name@@", &m.name)
         .replace(
