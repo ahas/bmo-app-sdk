@@ -4,6 +4,10 @@
 // from NUXT_* environment, the Bun preset and the API proxy. The app's own nuxt.config.ts calls
 // withAppDefaults and adds what is its own; a key the app names stands over the default.
 
+/**
+ * The shared defaults, typed as a Nuxt config so the literal values keep their types.
+ * @returns {import("nuxt/schema").NuxtConfig}
+ */
 export function appDefaults() {
   return {
     modules: ["@nuxt/ui", "@nuxtjs/i18n"],
@@ -58,6 +62,10 @@ export function appDefaults() {
 
 // The defaults with the application's own config laid over them: a top-level key the app names
 // replaces the default of that key, and everything else the app leaves unnamed stands as it is.
+/**
+ * @param {import("nuxt/schema").NuxtConfig} own
+ * @returns {import("nuxt/schema").NuxtConfig}
+ */
 export function withAppDefaults(own = {}) {
   return { ...appDefaults(), ...own };
 }
