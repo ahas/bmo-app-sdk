@@ -1,0 +1,15 @@
+[package]
+name = "bmo-app-declare"
+description = "The generator every application runs on its bmo-app.toml manifest: it writes the repository's testbed.toml, install.toml, systemd units, removal script and web scaffold from the one declaration"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
+toml = "0.9.7"
+
+[dev-dependencies]
+toml = "0.9.7"

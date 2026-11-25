@@ -1,0 +1,4 @@
+{
+  "//": "Lines holding letters that are not English, per code file (the testbed's language check). This repository holds none: what an application shows a person in Korean is the application's own, and the scaffolded files this repository hands out are English until the application writes its words.",
+  "files": {}
+}

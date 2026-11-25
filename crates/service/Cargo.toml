@@ -1,0 +1,18 @@
+[package]
+name = "bmo-app-service"
+description = "The service skeleton every BMO application binary stands on: the JSON answer envelope, the serving loop with its graceful stop, and the health verb's check"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+axum = { version = "0.8.9", features = ["macros"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tokio = { version = "1.53.3", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
+
+[dev-dependencies]
+# Reading a response body to its end in the tests.
+http-body-util = "0.1"

@@ -1,0 +1,22 @@
+# How the testbed tests and checks this repository (the testbed's docs/declaration.md). A base
+# library is taken by its consumers and built inside their builds, so it declares no build and
+# no deployment.
+
+testbed = 0
+name = "bmo-app-sdk"
+
+[test]
+languages = ["cargo"]
+
+[check]
+# The English-only rule, the layout, the dependencies the manifests name, and personal data.
+quick = ["korean", "layout", "dependencies", "personal-data"]
+korean_ledger = "korean-ledger.json"
+# A base library stands on registry crates alone.
+base_libraries = []
+
+# The scripts the generator hands out and the scaffold runs are shell; the testbed has no
+# shell language, so their syntax is checked as a step of its own.
+[[check.step]]
+id = "shell-syntax"
+command = "for file in bin/*.sh templates/*.sh; do sh -n \"$file\"; done"

@@ -1,0 +1,88 @@
+#!/bin/sh
+# Generated from bmo-app.toml by bmo-app-sdk's bmo-app-declare.
+# Takes @@name@@ off this machine the way bmo-app-sdk's docs/removal.md states it: the units down,
+# the registrations gone, the deploy tree away. It plans by default and changes nothing until you
+# say --yes; the runtime data stays until you also say --purge-data.
+set -eu
+
+NAME="@@name@@"
+UNITS="@@units@@"
+DEPLOY_ROOT="@@deploy_root@@"
+DATA_ROOT="@@data_root@@"
+TOOL="@@tool@@"
+CHECKOUTS="${BMO_DATA_DIR:-$HOME/.local/share/bmo/data}/testbed/checkouts.toml"
+
+DRY=1
+PURGE=0
+for arg in "$@"; do
+  case "$arg" in
+    --yes) DRY=0 ;;
+    --dry-run) DRY=1 ;;
+    --purge-data) PURGE=1 ;;
+    *)
+      echo "remove-$NAME: unknown argument: $arg" >&2
+      exit 2
+      ;;
+  esac
+done
+
+# A path this script may take away: only the application's own roots, stated whole.
+guard() {
+  case "$1" in
+    "$HOME/.local/share/"???* | /srv/*???*) : ;;
+    *)
+      echo "remove-$NAME: refusing to touch: $1" >&2
+      exit 3
+      ;;
+  esac
+}
+
+step() {
+  label="$1"
+  command="$2"
+  printf '%s %s: %s\n' "$([ "$DRY" = 1 ] && printf 'planned' || printf 'doing')" "$label" "$command"
+  if [ "$DRY" = 0 ]; then
+    sh -c "$command" || echo "remove-$NAME: $label did not finish; continuing" >&2
+  fi
+}
+
+guard "$DEPLOY_ROOT"
+guard "$DATA_ROOT"
+
+# 1. The units go first: nothing may be writing while the tree is taken away.
+for unit in $UNITS; do
+  step "unit $unit" "systemctl --user disable --now $unit"
+  step "unit file $unit" "rm -f \"\$HOME/.config/systemd/user/$unit\""
+done
+step "service manager" "systemctl --user daemon-reload"
+
+# 2. The registrations: the agency's repository row and this checkout's line in the
+#    machine's register. An unregistered application or a row a job holds is said and passed over.
+step "agency row" "bmo repository remove $NAME"
+if [ -f "$CHECKOUTS" ]; then
+  # The register names the checkout by its folder, in the home-tilde or the plain form; the
+  # name ends the line before the quote, and stands in the small alphabet, so it reads whole.
+  step "checkout register" "sed -i -e '/$NAME\\\",/d' '$CHECKOUTS'"
+else
+  echo "remove-$NAME: no checkout register at $CHECKOUTS to take a line from" >&2
+fi
+
+# 3. The tool goes before the tree it stands placed in, where the application registered one.
+if [ -n "$TOOL" ]; then
+  step "tool host" "bmo pocket take $TOOL"
+fi
+
+# 4. The tree. Releases and the deploy link stand under the deploy root and nothing else;
+#    the data root keeps its contents unless this is said outright.
+step "deploy tree" "rm -rf '$DEPLOY_ROOT'"
+if [ "$PURGE" = 1 ]; then
+  step "runtime data" "rm -rf '$DATA_ROOT'"
+else
+  echo "remove-$NAME: runtime data kept at $DATA_ROOT (--purge-data to take it)"
+fi
+
+if [ "$DRY" = 1 ]; then
+  echo "remove-$NAME: planned only; run again with --yes"
+else
+  echo "remove-$NAME: taken off this machine; the repository's GitHub copy and its git history stand"
+fi
