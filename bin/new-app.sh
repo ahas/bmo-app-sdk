@@ -177,4 +177,8 @@ git init -q -b main "$TARGET"
 GEN=$("$SDK_ABS/bin/build-generator.sh")
 "$GEN" "$TARGET_ABS/bmo-app.toml" >/dev/null
 
-echo "new-app: $TARGET stands with its declarations; its first steps are the SDK README's."
+# The first commit, so the checkout stands whole before its remote is named.
+git -C "$TARGET_ABS" add -A
+git -C "$TARGET_ABS" commit -q -m "chore: stand up $NAME from bmo-app-sdk"
+
+echo "new-app: $TARGET stands with its declarations and its first commit; its first steps are the SDK README's."
