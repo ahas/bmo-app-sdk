@@ -176,6 +176,14 @@ impl Manifest {
         }
         lines
     }
+
+    /// The unit names a restart takes, spaced.
+    pub fn units_line(&self) -> String {
+        match self.pages_unit() {
+            Some(pages) => format!("{} {}", self.service_unit(), pages),
+            None => self.service_unit(),
+        }
+    }
 }
 
 /// One generated file: its path in the repository, its content, and whether it is run as a
@@ -439,13 +447,9 @@ fn render_app_defaults(m: &Manifest) -> String {
 }
 
 fn render_remove(m: &Manifest) -> String {
-    let units: Vec<String> = match m.pages_unit() {
-        Some(pages) => vec![m.service_unit(), pages],
-        None => vec![m.service_unit()],
-    };
     include_str!("../../../templates/remove.sh")
         .replace("@@name@@", &m.name)
-        .replace("@@units@@", &units.join(" "))
+        .replace("@@units@@", &m.units_line())
         .replace("@@tool@@", m.tool.as_deref().unwrap_or_default())
         .replace("@@deploy_root@@", &m.deploy_root.replace("~/", "$HOME/"))
         .replace("@@data_root@@", &m.data_root.replace("~/", "$HOME/"))
@@ -466,14 +470,4 @@ fn quote(value: &str) -> String {
     }
     out.push('"');
     out
-}
-
-impl Manifest {
-    /// The unit names a restart takes, spaced.
-    pub fn units_line(&self) -> String {
-        match self.pages_unit() {
-            Some(pages) => format!("{} {}", self.service_unit(), pages),
-            None => self.service_unit(),
-        }
-    }
 }
