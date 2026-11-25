@@ -12,6 +12,16 @@ application), `docs/manifest.md` (the manifest and its readings), `docs/install.
 (installing), `docs/removal.md` (removing), `docs/service.md` (the Rust skeleton) and
 `docs/web.md` (the Nuxt defaults).
 
+## Folders
+
+| Folder | What it holds |
+|---|---|
+| `crates/service` | The library `bmo-app-service`: the answer envelope, the serving loop, the health checks |
+| `crates/declare` | The generator binary `bmo-app-declare`: an application's manifest read, its declarations written |
+| `templates/` | The text the units, the removal script, the web check and the web defaults are made of |
+| `bin/` | The scaffold that stands a new application up and the generator's build |
+| `docs/` | The base's own documents: design, manifest, install, removal, service, web |
+
 ## This repository's own checks
 
 Its suite is Cargo's, run through the testbed's queue: `bmo check` for a change,
