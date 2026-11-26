@@ -3,6 +3,9 @@
 - **What an application's web app starts from,** generated into its own tree so every build
   reads it complete (`docs/design.md`, on how reuse travels): a defaults module its
   `nuxt.config.ts` composes, and its check script.
+- **Applications whose screen is a console bundle are the console family**
+  (`docs/manifest.md`): the base generates their bundle's build and probe steps, not a web
+  scaffold; their `client/` stays their own.
 
 ## The defaults module
 

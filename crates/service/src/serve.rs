@@ -8,8 +8,18 @@ use tokio::net::TcpListener;
 /// Serves the router on the listener until [`shutdown_signal`] ends, finishing the answers
 /// already under way before returning.
 pub async fn serve(listener: TcpListener, app: Router) -> std::io::Result<()> {
+    serve_until(listener, app, shutdown_signal()).await
+}
+
+/// The same loop ended by a stop the caller hands in, for an application that closes its own
+/// event streams the moment the stop begins and before the last answers leave.
+pub async fn serve_until(
+    listener: TcpListener,
+    app: Router,
+    stop: impl std::future::Future<Output = ()> + Send + 'static,
+) -> std::io::Result<()> {
     axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(stop)
         .await
 }
 

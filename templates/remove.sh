@@ -9,6 +9,8 @@ NAME="@@name@@"
 UNITS="@@units@@"
 DEPLOY_ROOT="@@deploy_root@@"
 DATA_ROOT="@@data_root@@"
+DATA_FOLDER="@@data_folder@@"
+CHECKOUT="@@checkout@@"
 TOOL="@@tool@@"
 CHECKOUTS="${BMO_DATA_DIR:-$HOME/.local/share/bmo/data}/testbed/checkouts.toml"
 
@@ -64,9 +66,15 @@ step "service manager" "systemctl --user daemon-reload"
 #    machine's register. An unregistered application or a row a job holds is said and passed over.
 step "agency row" "bmo repository remove $NAME"
 if [ -f "$CHECKOUTS" ]; then
-  # The register names the checkout by its folder, in the home-tilde or the plain form; the
-  # name ends the line before the quote, and stands in the small alphabet, so it reads whole.
-  step "checkout register" "sed -i -e '/$NAME\\\",/d' '$CHECKOUTS'"
+  # The register keeps one quoted path a line. The manifest's checkout names this
+  # application's line whole; where it names none, the small-alphabet name ending a line's
+  # path answers for it.
+  if [ -n "$CHECKOUT" ]; then
+    LINE="${CHECKOUT#\~/}"
+    step "checkout register" "sed -i -e '/$LINE\\\",/d' '$CHECKOUTS'"
+  else
+    step "checkout register" "sed -i -e '/$NAME\\\",/d' '$CHECKOUTS'"
+  fi
 else
   echo "remove-$NAME: no checkout register at $CHECKOUTS to take a line from" >&2
 fi
@@ -80,7 +88,15 @@ fi
 #    the data root keeps its contents unless this is said outright.
 step "deploy tree" "rm -rf '$DEPLOY_ROOT'"
 if [ "$PURGE" = 1 ]; then
-  step "runtime data" "rm -rf '$DATA_ROOT'"
+  if [ -n "$DATA_FOLDER" ]; then
+    # The application shares the machine's data root and owns this folder under it.
+    step "runtime data" "rm -rf \"$DATA_ROOT/$DATA_FOLDER\""
+  elif [ "$DATA_ROOT" = "${BMO_DATA_DIR:-$HOME/.local/share/bmo/data}" ]; then
+    echo "remove-$NAME: $DATA_ROOT is the machine's shared data root; the manifest must name a data_folder before its data can go" >&2
+    exit 3
+  else
+    step "runtime data" "rm -rf '$DATA_ROOT'"
+  fi
 else
   echo "remove-$NAME: runtime data kept at $DATA_ROOT (--purge-data to take it)"
 fi

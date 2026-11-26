@@ -30,6 +30,32 @@ pub fn not_found() -> Response {
     problem(StatusCode::NOT_FOUND, "not found")
 }
 
+/// The body of a failed answer whose consumers read a code with the message.
+#[derive(Serialize)]
+pub struct CodeProblem {
+    pub code: String,
+    pub error: String,
+}
+
+/// A failure answered with the status its code carries, as `code` and `error` in one body.
+///
+/// A console application's console, tool and client read a code with every failure, so its
+/// handlers answer through this; a plain failure that names no code keeps [`problem`].
+pub fn code_problem(
+    status: StatusCode,
+    code: impl Into<String>,
+    error: impl std::fmt::Display,
+) -> Response {
+    (
+        status,
+        Json(CodeProblem {
+            code: code.into(),
+            error: error.to_string(),
+        }),
+    )
+        .into_response()
+}
+
 /// A success as its JSON, a failure as a 500 [`Problem`] naming what went wrong.
 pub fn answer<T: Serialize>(result: Result<T, BoxError>) -> Response {
     match result {

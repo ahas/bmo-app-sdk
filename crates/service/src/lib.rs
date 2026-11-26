@@ -10,9 +10,9 @@ mod answer;
 mod health;
 mod serve;
 
-pub use answer::{Problem, answer, not_found, problem};
+pub use answer::{CodeProblem, Problem, answer, code_problem, not_found, problem};
 pub use health::{check as health_check, check_site as site_check};
-pub use serve::{serve, shutdown_signal};
+pub use serve::{serve, serve_until, shutdown_signal};
 
 /// The error every skeleton part hands back: any boxed error a thread can carry.
 pub type BoxError = Box<dyn std::error::Error + Send + Sync>;

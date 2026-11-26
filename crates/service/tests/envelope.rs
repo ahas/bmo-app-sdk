@@ -2,7 +2,7 @@
 
 use axum::http::StatusCode;
 use axum::response::Response;
-use bmo_app_service::{BoxError, answer, not_found, problem};
+use bmo_app_service::{BoxError, answer, code_problem, not_found, problem};
 use http_body_util::BodyExt;
 use serde_json::Value;
 
@@ -53,4 +53,20 @@ async fn a_stated_failure_carries_the_stated_status() {
     let (status, body) = answered(problem(StatusCode::BAD_REQUEST, "the id is missing")).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(body, serde_json::json!({ "error": "the id is missing" }));
+}
+
+#[tokio::test]
+async fn a_coded_failure_carries_code_and_status_together() {
+    let (status, body) = answered(code_problem(
+        StatusCode::CONFLICT,
+        "version-conflict",
+        "the note stands at version 3",
+    ))
+    .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(
+        body,
+        serde_json::json!({ "code": "version-conflict", "error": "the note stands at version 3" }),
+        "console-family consumers read the code beside the message"
+    );
 }

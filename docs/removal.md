@@ -18,7 +18,8 @@
    told.
 2. **The registrations go:** the agency's repository row for the application is removed (an
    application with no row, or a row some job still holds a checkout of, is said, not
-   forced), and the application's line is taken out of the machine's checkout register.
+   forced), and the application's line is taken out of the machine's checkout register by
+   the checkout path the manifest declares, or by its name where none is declared.
 3. **The tool goes where the application registered one:** a hosted tool is taken out of the
    tool host's registry by that host's own verb before its placed folder is taken with the
    tree; an application with no tool has nothing here.
@@ -26,8 +27,12 @@
    declared deploy root and nowhere else. The removal refuses a root that stands outside the
    home's share folder and outside `/srv/`, and refuses an empty one, so the paths it may
    take are exactly the paths a manifest may declare.
-5. **The data stays or goes:** the data root is kept by default and taken only with
-   `--purge-data`, under the same guard.
+5. **The data stays or goes:** the data root is kept by default. With `--purge-data` an
+   application whose `data_folder` is set loses that folder under the root and nothing else,
+   and the removal refuses to take a whole data root that is the machine's shared one, so a
+   console application can never stand as if it owned every service's data. An application
+   with a data root of its own and no folder loses that root, under the same guard as the
+   deploy tree.
 6. **The machine's edges are the application's own document's:** the proxy host, DNS row and
    firewall rule that fronted it are removed by the steps its own deploy document states,
    since those belong to that application's machine facts, not to the base.

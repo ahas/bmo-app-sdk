@@ -46,6 +46,8 @@ flowchart TD
 ## What stays each application's own
 
 - Its Cargo and package manifests beyond the path to this base, its routes, stores and schema.
+- Its console bundle under `client/` and the app declaration its deployment publishes, where
+  its screen is the console's.
 - Its Korean: every string a person reads, in its locale files.
 - Its ports and roots as values: the manifest names them; the unit and install readings are
   written from the manifest, never from a central table.

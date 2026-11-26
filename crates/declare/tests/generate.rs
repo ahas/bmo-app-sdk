@@ -14,11 +14,13 @@ service_port = 7550
 public_url = "https://widget.example"
 service_env = { WIDGET_KEY_FILE = "~/.local/share/bmo/data/env/widget-key" }
 pages_env = { NUXT_PUBLIC_GOOGLE_SITE_VERIFICATION = "" }
-tool = "widget"
 
 [web]
 pages_port = 7551
 dev_port = 3550
+
+[tool]
+name = "widget"
 
 [[input]]
 name = "widget-key"
@@ -37,13 +39,80 @@ type = "check"
 text = "A widget request goes to the widget service."
 "#;
 
-fn generated(path: &str) -> String {
-    let manifest = Manifest::parse(WEB_MANIFEST).expect("the manifest reads");
+/// A console application standing as the platform's console family declares itself: the
+/// bundle's project and build, the install's tokens, settings and lines, a tool of its own
+/// and the machine's shared data root.
+const CONSOLE_MANIFEST: &str = r#"
+app = 1
+name = "qa-console"
+description = "A console screen kept for a test"
+env_prefix = "QA_CONSOLE"
+deploy_root = "~/.local/share/qa-console"
+data_root = "~/.local/share/bmo/data"
+data_folder = "qa-console"
+service_port = 7560
+port_name = "console.server"
+checkout = "~/repos/ahas/bmo/services/console"
+base_libraries = ["bmo-console-face"]
+shared_versions = "bmo-chat"
+korean_ledger = "korean-ledger.json"
+personal_data_allowed = ["dev@example"]
+test_setup = ["cd client && bun install --frozen-lockfile"]
+
+[console]
+project = "client"
+install = "bun install --frozen-lockfile"
+check_script = "check"
+built = "build"
+release_out = "QA_CONSOLE_OUT"
+typecheck = true
+reach = true
+publish = true
+
+[tool]
+name = "console-helper"
+dir = "tools/console"
+binary = "console-tool"
+env = true
+
+[[token]]
+name = "console.service"
+file = "env/console-service.token"
+
+[[token]]
+name = "console.secrets"
+file = "env/console-secrets.key"
+bytes = 32
+encoding = "base64"
+
+[[settings]]
+file = "env/console.toml"
+text = """
+[server]
+listen = "127.0.0.1:{{port.console.server}}"
+token = "{{token.console.service}}"
+
+[store]
+path = "{{data_root}}/qa-console/console.db"
+"""
+
+[[line]]
+file = "env/web-console.env"
+key = "CONSOLE_ADDRESS"
+value = "http://127.0.0.1:{{port.console.server}}"
+"#;
+
+fn generated_for(manifest: &str, path: &str) -> String {
+    let manifest = Manifest::parse(manifest).expect("the manifest reads");
     render(&manifest)
         .into_iter()
         .find(|file| file.path == path)
         .unwrap_or_else(|| panic!("no reading stands at {path}"))
         .content
+}
+
+fn generated(path: &str) -> String {
+    generated_for(WEB_MANIFEST, path)
 }
 
 #[test]
@@ -76,6 +145,10 @@ fn a_web_manifest_reads_the_platforms_own_declaration() {
     );
     let steps = parsed["build"]["step"].as_array().expect("build steps");
     assert_eq!(steps.len(), 2, "the site build and its placement stand");
+    assert!(
+        parsed["deploy"].get("step").is_none(),
+        "the web family carries no deploy steps of its own"
+    );
 }
 
 #[test]
@@ -111,6 +184,10 @@ fn the_units_stand_as_the_platform_watches_them() {
     );
     assert!(service.contains("ExecStart=%h/.local/share/qa-widget/deploy/bin/qa-widget serve"));
     assert!(service.contains("After=network-online.target qa-widget-pages.service"));
+    assert!(
+        !service.contains("TimeoutStopSec"),
+        "a web unit stops by the plain rule"
+    );
 
     let pages = generated("deploy/qa-widget-pages.service");
     assert!(pages.contains("X-BMO-Deploy=restart"));
@@ -130,6 +207,11 @@ fn the_removal_script_guards_the_roots_it_bakes() {
     assert!(removal.contains("guard \"$DEPLOY_ROOT\""));
     assert!(removal.contains("bmo pocket take $TOOL"));
     assert!(removal.contains("purge-data"));
+    // A manifest naming no data folder and no checkout keeps the whole-root purge and the
+    // name-keyed register line.
+    assert!(removal.contains("DATA_FOLDER=\"\""));
+    assert!(removal.contains("CHECKOUT=\"\""));
+    assert!(removal.contains("rm -rf '$DATA_ROOT'"));
 }
 
 #[test]
@@ -215,6 +297,199 @@ service_port = 7600
 }
 
 #[test]
+fn a_console_manifest_reads_the_familys_own_testbed() {
+    let testbed = generated_for(CONSOLE_MANIFEST, "testbed.toml");
+    let parsed: toml::Value = toml::from_str(&testbed).expect("the reading is valid TOML");
+    let languages = parsed["test"]["languages"].as_array().expect("languages");
+    assert_eq!(
+        languages
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec!["cargo", "bun"],
+        "the console family tests Rust and Bun, no browser project"
+    );
+    assert_eq!(
+        parsed["test"]["setup"][0].as_str(),
+        Some("cd client && bun install --frozen-lockfile")
+    );
+    assert_eq!(parsed["projects"]["paths"][0].as_str(), Some("client"));
+    assert_eq!(parsed["projects"]["check_script"].as_str(), Some("check"));
+    assert_eq!(parsed["tools"]["dir"].as_str(), Some("tools"));
+    let quick = parsed["check"]["quick"].as_array().expect("quick sweeps");
+    assert_eq!(
+        quick
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec![
+            "korean",
+            "layout",
+            "dependencies",
+            "cargo-profile",
+            "shared-versions",
+            "personal-data"
+        ]
+    );
+    assert_eq!(
+        parsed["check"]["korean_ledger"].as_str(),
+        Some("korean-ledger.json")
+    );
+    assert_eq!(
+        parsed["check"]["personal_data_allowed"][0].as_str(),
+        Some("dev@example")
+    );
+    let libraries = parsed["check"]["base_libraries"]
+        .as_array()
+        .expect("libraries");
+    assert_eq!(
+        libraries
+            .iter()
+            .map(|v| v.as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec!["bmo-app-service", "bmo-console-face"]
+    );
+    assert_eq!(
+        parsed["check"]["shared_versions"]["repository"].as_str(),
+        Some("bmo-chat")
+    );
+    let steps = parsed["check"]["step"].as_array().expect("static steps");
+    assert_eq!(steps[0]["id"].as_str(), Some("client-typecheck"));
+    assert_eq!(
+        parsed["build"]["binaries"].as_array().map(Vec::len),
+        Some(2)
+    );
+    assert_eq!(
+        parsed["deploy"]["env_links"][0]["target"].as_str(),
+        Some("env/console.toml")
+    );
+    assert_eq!(
+        parsed["deploy"]["console"]["reach"].as_str(),
+        Some("bin/qa-console console-reach")
+    );
+    let steps = parsed["deploy"]["step"].as_array().expect("deploy steps");
+    assert_eq!(
+        steps
+            .iter()
+            .map(|s| s["id"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec![
+            "publish-app",
+            "tool-env",
+            "place-console-helper-tool",
+            "register-console-helper-tool"
+        ],
+        "the bundle builds during the build, so no deploy bundle step stands; publication, env, placement and registration follow"
+    );
+    assert_eq!(
+        steps[3]["command"].as_str().unwrap(),
+        "set -eu\nbmo pocket put tools/console/.placed --placed --service console-helper --allow room.tools\n"
+    );
+    let build_steps = parsed["build"]["step"].as_array().expect("build steps");
+    assert_eq!(build_steps[0]["id"].as_str(), Some("console-install"));
+    assert_eq!(build_steps[1]["id"].as_str(), Some("console-bundle"));
+    assert_eq!(build_steps[1]["lane"].as_str(), Some("wide"));
+    assert!(
+        build_steps[1]["command"]
+            .as_str()
+            .unwrap()
+            .starts_with("QA_CONSOLE_OUT=\"$(git rev-parse --show-toplevel)/../deploy-releases/"),
+        "the bundle's place in the release travels in the variable the manifest names"
+    );
+}
+
+#[test]
+fn a_console_deploy_build_carries_the_bundle_before_the_flip() {
+    let built_at_deploy = CONSOLE_MANIFEST.replace("built = \"build\"", "built = \"deploy\"");
+    let testbed = generated_for(&built_at_deploy, "testbed.toml");
+    let parsed: toml::Value = toml::from_str(&testbed).expect("valid TOML");
+    assert!(
+        parsed["build"].get("step").is_none(),
+        "no build-time bundle pair stands"
+    );
+    let steps = parsed["deploy"]["step"].as_array().expect("deploy steps");
+    assert_eq!(steps[0]["id"].as_str(), Some("console-bundle"));
+    assert_eq!(steps[0]["phase"].as_str(), Some("before-flip"));
+    assert!(
+        steps[0]["command"]
+            .as_str()
+            .unwrap()
+            .contains("cd client\nbun install --frozen-lockfile\nbun run bundle"),
+        "the bundle is laid and built inside the release"
+    );
+}
+
+#[test]
+fn the_console_install_reading_carries_tokens_settings_and_lines() {
+    let install = generated_for(CONSOLE_MANIFEST, "install.toml");
+    let parsed: toml::Value = toml::from_str(&install).expect("the reading is valid TOML");
+    let needs = parsed["needs"].as_array().expect("needs");
+    let programs = needs
+        .iter()
+        .map(|n| n["program"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        programs,
+        vec!["cargo", "bun"],
+        "the console family needs no C line"
+    );
+    assert!(
+        needs[0]["what"].as_str().unwrap().contains("and its tool"),
+        "the tool's own binary builds too"
+    );
+    assert_eq!(parsed["port"][0]["name"].as_str(), Some("console.server"));
+    assert_eq!(parsed["port"].as_array().map(Vec::len), Some(1));
+    assert_eq!(parsed["token"][0]["name"].as_str(), Some("console.service"));
+    assert_eq!(parsed["token"][1]["bytes"].as_integer(), Some(32));
+    assert_eq!(parsed["token"][1]["encoding"].as_str(), Some("base64"));
+    assert_eq!(
+        parsed["settings"][0]["file"].as_str(),
+        Some("env/console.toml")
+    );
+    assert!(
+        parsed["settings"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("listen = \"127.0.0.1:{{port.console.server}}\""),
+        "the settings text travels whole, placeholders and all"
+    );
+    assert_eq!(parsed["line"][0]["key"].as_str(), Some("CONSOLE_ADDRESS"));
+}
+
+#[test]
+fn a_console_unit_waits_on_its_settings_and_never_on_a_kill() {
+    let unit = generated_for(CONSOLE_MANIFEST, "deploy/qa-console.service");
+    assert!(
+        unit.contains("ConditionPathExists=%h/.local/share/bmo/data/env/console.toml"),
+        "the unit does not start without its deployed settings"
+    );
+    assert!(unit.contains("TimeoutStopSec=infinity"));
+    assert!(
+        !unit.contains("Environment=QA_CONSOLE_LISTEN"),
+        "a console application reads settings files, so the unit sets no listen environment"
+    );
+    assert!(unit.contains("ExecStart=%h/.local/share/qa-console/deploy/bin/qa-console serve"));
+    assert!(unit.contains("X-BMO-Deploy=bot"));
+}
+
+#[test]
+fn a_console_removal_takes_its_folder_and_its_declared_register_line() {
+    let removal = generated_for(CONSOLE_MANIFEST, "scripts/remove.sh");
+    assert!(removal.contains("DATA_FOLDER=\"qa-console\""));
+    assert!(removal.contains("CHECKOUT=\"~/repos/ahas/bmo/services/console\""));
+    assert!(removal.contains("TOOL=\"console-helper\""));
+    assert!(
+        removal.contains(r#"rm -rf \"$DATA_ROOT/$DATA_FOLDER\""#),
+        "the folder under the shared root is what the purge takes"
+    );
+    assert!(
+        !removal.contains("rm -rf '$DATA_ROOT'\n"),
+        "a shared data root is never taken whole by an application naming its folder"
+    );
+    assert!(removal.contains("${CHECKOUT#"));
+}
+
+#[test]
 fn a_manifest_that_does_not_hold_together_is_refused_naming_why() {
     for (broken, wanted) in [
         (
@@ -236,6 +511,25 @@ fn a_manifest_that_does_not_hold_together_is_refused_naming_why() {
         (
             WEB_MANIFEST.replace("pages_port = 7551", "pages_port = 7550"),
             "its own",
+        ),
+        (
+            WEB_MANIFEST.replace(
+                "[tool]\nname = \"widget\"",
+                "[console]\nproject = \"c\"\ninstall = \"i\"",
+            ),
+            "one half",
+        ),
+        (
+            CONSOLE_MANIFEST.replace("release_out = \"QA_CONSOLE_OUT\"\n", ""),
+            "release_out",
+        ),
+        (
+            CONSOLE_MANIFEST.replace("port_name = \"console.server\"", "port_name = \"console\""),
+            ".server",
+        ),
+        (
+            CONSOLE_MANIFEST.replace("name = \"console-helper\"", "name = \"Console Helper\""),
+            "small alphabet",
         ),
     ] {
         let reason = Manifest::parse(&broken)
