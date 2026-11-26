@@ -408,7 +408,9 @@ impl Manifest {
 
     /// The data root's file the console unit waits on before it starts.
     fn settings_condition(&self) -> Option<String> {
-        self.console.as_ref()?;
+        if !matches!(self.family(), Family::Console(_)) {
+            return None;
+        }
         let first = self.settings.first()?;
         Some(format!(
             "{}/{}",
@@ -493,15 +495,11 @@ fn render_testbed(m: &Manifest) -> String {
         Family::Plain => "languages = [\"cargo\"]\n",
     });
     if !m.test_setup.is_empty() {
-        out.push_str("# What a fresh tree lacks, laid before any unit runs.\nsetup = [");
-        out.push_str(
-            &m.test_setup
-                .iter()
-                .map(|line| quote(line))
-                .collect::<Vec<_>>()
-                .join(", "),
+        let _ = write!(
+            out,
+            "# What a fresh tree lacks, laid before any unit runs.\nsetup = [{}]\n",
+            quoted_list(m.test_setup.iter().map(String::as_str))
         );
-        out.push_str("]\n");
     }
     match m.family() {
         Family::Web(_) => out.push_str(
@@ -531,14 +529,14 @@ fn render_testbed(m: &Manifest) -> String {
         );
     }
     out.push_str(&render_check(m));
-    let mut binaries = vec![quote(&m.name)];
+    let mut binaries = vec![m.name.as_str()];
     if let Some(tool) = console_tool
         && let Some(binary) = &tool.binary
     {
         // The tool's own binary builds beside the service's.
-        binaries.push(quote(binary));
+        binaries.push(binary.as_str());
     }
-    let _ = write!(out, "\n[build]\nbinaries = [{}]\n", binaries.join(", "));
+    let _ = write!(out, "\n[build]\nbinaries = [{}]\n", quoted_list(binaries));
     match m.family() {
         Family::Web(_) => out.push_str(
             "\n# The web app, built in the build tree and copied into the release being built as its\n\
@@ -553,7 +551,7 @@ fn render_testbed(m: &Manifest) -> String {
              command = \"site=\\\"$(git rev-parse --show-toplevel)/../deploy-releases/$(git rev-parse HEAD | cut -c1-12)/site\\\" && mkdir -p \\\"$site\\\" && cp -a web/.output/. \\\"$site/\\\"\"\n",
         ),
         Family::Console(console) if console.built == Built::Build => {
-            let place = format!(
+            let bundle_command = format!(
                 "{}=\"$(git rev-parse --show-toplevel)/../deploy-releases/$(git rev-parse HEAD | cut -c1-12)/console\" {}",
                 console.release_out.as_deref().unwrap_or_default(),
                 console.bundle
@@ -562,19 +560,19 @@ fn render_testbed(m: &Manifest) -> String {
                 out,
                 "\n# The console bundle, installed and built in the build tree and written into the\n\
                  # release being built, where the service reads its console folder from.\n\
-                 [[build.step]]\n\
-                 id = \"console-install\"\n\
-                 dir = {}\n\
-                 command = {}\n\n\
-                 [[build.step]]\n\
-                 id = \"console-bundle\"\n\
-                 dir = {}\n\
-                 lane = \"wide\"\n\
-                 command = {}\n",
-                quote(&console.project),
-                quote(&console.install),
-                quote(&console.project),
-                quote(&place)
+                 {}\n{}",
+                build_step(
+                    "console-install",
+                    &console.project,
+                    None,
+                    &quote(&console.install)
+                ),
+                build_step(
+                    "console-bundle",
+                    &console.project,
+                    Some("wide"),
+                    &quote(&bundle_command)
+                )
             );
         }
         _ => {}
@@ -609,22 +607,14 @@ fn render_check(m: &Manifest) -> String {
         let _ = write!(
             out,
             "# The sweeps that read the tree before anything runs.\nquick = [{}]\n",
-            quick
-                .iter()
-                .map(|name| quote(name))
-                .collect::<Vec<_>>()
-                .join(", ")
+            quoted_list(quick)
         );
     }
     if !m.personal_data_allowed.is_empty() {
         let _ = write!(
             out,
             "# The addresses the personal-data rule allows.\npersonal_data_allowed = [{}]\n",
-            m.personal_data_allowed
-                .iter()
-                .map(|address| quote(address))
-                .collect::<Vec<_>>()
-                .join(", ")
+            quoted_list(m.personal_data_allowed.iter().map(String::as_str))
         );
     }
     if let Some(ledger) = &m.korean_ledger {
@@ -634,12 +624,12 @@ fn render_check(m: &Manifest) -> String {
             quote(ledger)
         );
     }
-    let mut libraries = vec![quote("bmo-app-service")];
-    libraries.extend(m.base_libraries.iter().map(|name| quote(name)));
+    let mut libraries = vec!["bmo-app-service"];
+    libraries.extend(m.base_libraries.iter().map(String::as_str));
     let _ = write!(
         out,
         "# The base library the service crate takes by a path beside this checkout.\nbase_libraries = [{}]\n",
-        libraries.join(", ")
+        quoted_list(libraries)
     );
     if let Some(repository) = &m.shared_versions {
         let _ = write!(
@@ -700,19 +690,26 @@ fn render_deploy(m: &Manifest) -> String {
         );
     }
     if console.built == Built::Deploy {
+        let bundle = script_command(&[
+            "set -eu",
+            &format!("cd {}", console.project),
+            &console.install,
+            &console.bundle,
+        ]);
         let _ = write!(
             out,
             "\n# The console bundle the service serves from the release: its locked packages laid\n\
-             # and its folder built inside the release, where the settings' console folder reads it.\n\
-             [[deploy.step]]\nid = \"console-bundle\"\nphase = \"before-flip\"\ncommand = '''\nset -eu\ncd {}\n{}\n{}\n'''\n",
-            console.project, console.install, console.bundle
+             # and its folder built inside the release, where the settings' console folder reads it.\n{}",
+            deploy_step("console-bundle", "before-flip", &bundle)
         );
     }
     if console.publish {
-        out.push_str(
+        let publish = script_command(&["set -eu", "bmo pocket app deploy/app.toml"]);
+        let _ = write!(
+            out,
             "\n# The app the console screen is, published on the delegation chain once the service\n\
-             # answers ready, from the declaration the release carries.\n\
-             [[deploy.step]]\nid = \"publish-app\"\nphase = \"after-health\"\ncommand = '''\nset -eu\nbmo pocket app deploy/app.toml\n'''\n",
+             # answers ready, from the declaration the release carries.\n{}",
+            deploy_step("publish-app", "after-health", &publish)
         );
     }
     let Some(tool) = m.tool.as_ref() else {
@@ -722,27 +719,50 @@ fn render_deploy(m: &Manifest) -> String {
     if tool.env {
         let _ = write!(
             out,
-            "\n# The env file the tool and the other units read the service's address and token from.\n[[deploy.step]]\nid = \"tool-env\"\nphase = \"before-flip\"\ncommand = {}\n",
-            quote(&format!("bin/{} tool-env", m.name))
+            "\n# The env file the tool and the other units read the service's address and token from.\n{}",
+            deploy_step(
+                "tool-env",
+                "before-flip",
+                &quote(&format!("bin/{} tool-env", m.name))
+            )
         );
     }
+    let place_command = script_command(&[
+        "set -eu",
+        &format!("rm -rf {dir}/.placed"),
+        &format!("mkdir -p {dir}/.placed"),
+        &format!(
+            "cp bin/{} {dir}/tool.toml {dir}/manual.md {dir}/*.json {dir}/.placed/",
+            tool.binary(&m.name)
+        ),
+    ]);
     let _ = write!(
         out,
         "\n# The tool placed in its folder's .placed/, the folder the tool host reads: the executable\n\
-         # the release's bin/ holds, its manifest, its manual and the schemas beside it.\n\
-         [[deploy.step]]\nid = \"place-{}-tool\"\nphase = \"before-flip\"\ncommand = '''\nset -eu\nrm -rf {d}/.placed\nmkdir -p {d}/.placed\ncp bin/{binary} {d}/tool.toml {d}/manual.md {d}/*.json {d}/.placed/\n'''\n",
-        tool.name,
-        binary = tool.binary(&m.name),
-        d = dir
+         # the release's bin/ holds, its manifest, its manual and the schemas beside it.\n{}",
+        deploy_step(
+            &format!("place-{}-tool", tool.name),
+            "before-flip",
+            &place_command
+        )
     );
+    let register_command = script_command(&[
+        "set -eu",
+        &format!(
+            "bmo pocket put {dir}/.placed --placed --service {} --allow {}",
+            tool.service(),
+            tool.capability()
+        ),
+    ]);
     let _ = write!(
         out,
         "\n# The placed tool registered with the tool host under this service's name, carrying the\n\
-         # capability its entries ask for.\n[[deploy.step]]\nid = \"register-{name}-tool\"\nphase = \"after-health\"\ncommand = '''\nset -eu\nbmo pocket put {dir}/.placed --placed --service {service} --allow {capability}\n'''\n",
-        name = tool.name,
-        service = tool.service(),
-        capability = tool.capability(),
-        dir = dir
+         # capability its entries ask for.\n{}",
+        deploy_step(
+            &format!("register-{}-tool", tool.name),
+            "after-health",
+            &register_command
+        )
     );
     out
 }
@@ -983,6 +1003,36 @@ fn render_remove(m: &Manifest) -> String {
         .replace("@@checkout@@", m.checkout.as_deref().unwrap_or(""))
         .replace("@@deploy_root@@", &m.deploy_root.replace("~/", "$HOME/"))
         .replace("@@data_root@@", &m.data_root.replace("~/", "$HOME/"))
+}
+
+/// A TOML inline array body: the values quoted and comma-separated.
+fn quoted_list<'a>(values: impl IntoIterator<Item = &'a str>) -> String {
+    values.into_iter().map(quote).collect::<Vec<_>>().join(", ")
+}
+
+/// One testbed deploy step: its name, its phase and its already-wrapped command.
+fn deploy_step(id: &str, phase: &str, command: &str) -> String {
+    format!(
+        "[[deploy.step]]\nid = {}\nphase = {}\ncommand = {command}\n",
+        quote(id),
+        quote(phase)
+    )
+}
+
+/// One testbed build step: its name, its folder, its lane where it builds wide, and its
+/// already-wrapped command.
+fn build_step(id: &str, dir: &str, lane: Option<&str>, command: &str) -> String {
+    let mut out = format!("[[build.step]]\nid = {}\ndir = {}\n", quote(id), quote(dir));
+    if let Some(lane) = lane {
+        let _ = writeln!(out, "lane = {}", quote(lane));
+    }
+    let _ = writeln!(out, "command = {command}");
+    out
+}
+
+/// A step command that is a shell script, kept literal so the text travels as written.
+fn script_command(lines: &[&str]) -> String {
+    format!("'''\n{}\n'''", lines.join("\n"))
 }
 
 /// A Rust string as a TOML basic string.
