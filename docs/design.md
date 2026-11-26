@@ -14,8 +14,9 @@
   parallel schema. The manifest's own file is this repository's reading, like any project's
   syntax.
 - **A base never knows its consumers.** Nothing here names an application; the generator runs
-  inside an application's checkout on that checkout's manifest, and the skeleton serves
-  whatever router is handed to it.
+  inside an application's checkout on that checkout's manifest, the skeleton serves whatever
+  router is handed to it, and the application command finds applications in the machine's
+  checkout register as it runs and names none of them.
 - **Reuse travels as generated files, not as runtime reads across checkouts.** A release's
   build tree and a placed bench may hold no sibling checkout at the moment a web build runs,
   so every file the generator hands out stands complete inside the application: the
@@ -34,12 +35,15 @@ flowchart TD
   D --> R[removal script]
   D --> W[web defaults and check script]
   S[bmo-app-service, the Rust skeleton] --> A[the application's binary]
+  C[bmo-app, the application command] --> D
+  C --> N[bin/new-app.sh, the scaffold]
 ```
 
 | Piece | What it is |
 |---|---|
 | `crates/declare` | The generator binary `bmo-app-declare`: reads a manifest, writes or checks its readings |
 | `crates/service` | The library `bmo-app-service`: the JSON answer envelope, the serving loop and its graceful stop, the health verb's checks (`docs/service.md`) |
+| `crates/app` | The unit command `bmo-app`: the `bmo app` verbs that front the scaffold and the generator from one place (`docs/app-command.md`) |
 | `templates/` | The text every application's units, removal script, web check and web defaults are made of |
 | `bin/` | The scaffold that stands a new application up, and the generator build (`README.md`) |
 
@@ -60,5 +64,6 @@ flowchart TD
 - Each crate stands on registry crates alone.
 - The generator writes text and imports nothing from the library; the two share only the
   manifest's meaning, which this document states.
-- This repository deploys nothing and installs nothing: like every base library, it is
-  cloned by its consumers and built inside their builds.
+- This repository installs no service and deploys none of its own: like every base library,
+  it is cloned by its consumers and built inside their builds. What it deploys is the one
+  command it lends the machine, linked beside the entry command (`docs/app-command.md`).

@@ -19,5 +19,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - `bmo-app-service`'s `serve_until`, the serving loop ended by a stop the application hands in,
   and `code_problem`, the coded failure envelope the console family's consumers read.
 - The scaffold `bin/new-app.sh`, which stands a new application checkout up from nothing.
+- The `bmo app` unit command `bmo-app`: `new`, `declare`, `list` and `check`, fronting the
+  scaffold and the generator from one place (`docs/app-command.md`).
 - Documents for the manifest, the install path, the removal path, the service skeleton and
   the web defaults.

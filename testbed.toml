@@ -1,6 +1,7 @@
-# How the testbed tests and checks this repository (the testbed's docs/declaration.md). A base
-# library is taken by its consumers and built inside their builds, so it declares no build and
-# no deployment.
+# How the testbed tests, checks, builds and deploys this repository (the testbed's
+# docs/declaration.md). A base library is taken by its consumers and built inside their
+# builds, so it installs no service; what it builds and deploys is the one command it lends
+# the machine.
 
 testbed = 0
 name = "bmo-app-sdk"
@@ -20,3 +21,26 @@ base_libraries = []
 [[check.step]]
 id = "shell-syntax"
 command = "for file in bin/*.sh templates/*.sh; do sh -n \"$file\"; done"
+
+[build]
+binaries = ["bmo-app"]
+
+# The repository runs no service, so the deployment starts no unit. What it deploys is the
+# one command it lends the machine.
+[deploy]
+root = "~/.local/share/bmo-app-sdk"
+data_root = "~/.local/share/bmo/data"
+units = []
+
+# The command, linked into the folder holding `bmo`, where the entry command finds its unit
+# commands. The link names this repository's deploy tree, whose own link stands across
+# releases; a link made to the release being deployed would dangle once a later deployment
+# prunes that release.
+[[deploy.step]]
+id = "link-command"
+phase = "before-flip"
+command = '''
+set -eu
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$HOME/.local/share/bmo-app-sdk/deploy/bin/bmo-app" "$HOME/.local/bin/bmo-app"
+'''
