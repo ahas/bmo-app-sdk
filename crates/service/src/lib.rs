@@ -10,7 +10,9 @@ mod answer;
 mod health;
 mod serve;
 
-pub use answer::{CodeProblem, Problem, answer, code_problem, not_found, problem};
+pub use answer::{
+    CodeProblem, Notice, Problem, Refusal, answer, code_problem, not_found, problem, refusal,
+};
 pub use health::{check as health_check, check_site as site_check};
 pub use serve::{serve, serve_until, shutdown_signal};
 

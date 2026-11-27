@@ -2,7 +2,9 @@
 
 use axum::http::StatusCode;
 use axum::response::Response;
-use bmo_app_service::{BoxError, answer, code_problem, not_found, problem};
+use bmo_app_service::{
+    BoxError, Notice, Refusal, answer, code_problem, not_found, problem, refusal,
+};
 use http_body_util::BodyExt;
 use serde_json::Value;
 
@@ -68,5 +70,65 @@ async fn a_coded_failure_carries_code_and_status_together() {
         body,
         serde_json::json!({ "code": "version-conflict", "error": "the note stands at version 3" }),
         "console-family consumers read the code beside the message"
+    );
+}
+
+#[tokio::test]
+async fn a_refusal_says_who_may_and_what_to_do_next() {
+    let (status, body) = answered(refusal(
+        StatusCode::FORBIDDEN,
+        Refusal {
+            code: "not-a-writer".into(),
+            error: "Only the calendar's writers change its events.".into(),
+            who_may: Some("the administrator and the calendar's writers".into()),
+            next: Some("ask a writer to add you".into()),
+        },
+    ))
+    .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(
+        body,
+        serde_json::json!({
+            "code": "not-a-writer",
+            "error": "Only the calendar's writers change its events.",
+            "whoMay": "the administrator and the calendar's writers",
+            "next": "ask a writer to add you",
+        })
+    );
+
+    let (_, bare) = answered(refusal(
+        StatusCode::FORBIDDEN,
+        Refusal {
+            code: "forbidden".into(),
+            error: "No.".into(),
+            who_may: None,
+            next: None,
+        },
+    ))
+    .await;
+    assert_eq!(
+        bare,
+        serde_json::json!({ "code": "forbidden", "error": "No." })
+    );
+}
+
+#[test]
+fn a_notice_reads_its_fact_its_reason_and_its_next_step() {
+    let notice = Notice {
+        fact: "The booking of room 3 was moved to 15:00.".into(),
+        next: "tell the people booked".into(),
+        why: Some("The room was taken for a repair.".into()),
+    };
+    assert_eq!(
+        notice.text(),
+        "The booking of room 3 was moved to 15:00.\nThe room was taken for a repair.\nNext: tell the people booked"
+    );
+    assert_eq!(
+        Notice {
+            why: None,
+            ..notice
+        }
+        .text(),
+        "The booking of room 3 was moved to 15:00.\nNext: tell the people booked"
     );
 }

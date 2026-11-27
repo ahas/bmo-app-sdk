@@ -19,6 +19,16 @@
   codes today, so its failures travel this way; a plain answer that names no code keeps the
   one-field body.
 
+## Refusals and notices
+
+- **A refusal says who may and what to do next.** `refusal` answers a `Refusal` with the status the handler
+  names: `code` and `error` as a code problem carries them, `whoMay`, who may do what was refused, and `next`,
+  the step the caller takes instead, each left out where the application has none to say. What the caller may
+  not do is refused this way, never left out of the API or answered as not found.
+- **A notice carries the fact and the step it calls for.** A `Notice` is the fact of what changed, `next`, the
+  step its reader takes now, and `why` where the fact alone does not say; its `text` is the three as one text,
+  the next step on a line opening `Next:`. The application hands that text to whatever carries the notice.
+
 ## The serving loop
 
 - `serve` answers on a bound listener with a router and returns once shutdown begins,

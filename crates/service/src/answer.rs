@@ -56,6 +56,44 @@ pub fn code_problem(
         .into_response()
 }
 
+/// The body of a refusal of what the caller may not do: its code and sentence, who may do it, and the step the
+/// caller takes next, so a refusal is never a dead end.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Refusal {
+    pub code: String,
+    pub error: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub who_may: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next: Option<String>,
+}
+
+/// A refusal answered with its status: what was refused and why, who may do it, and what to do next.
+pub fn refusal(status: StatusCode, refused: Refusal) -> Response {
+    (status, Json(refused)).into_response()
+}
+
+/// A notice an application raises for a person or an agent: the fact of what changed, the step it calls for, and
+/// why, where the fact alone does not say. An application hands its words to whatever carries the notice.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct Notice {
+    pub fact: String,
+    pub next: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub why: Option<String>,
+}
+
+impl Notice {
+    /// The notice as one text: the fact, the reason under it where there is one, then the next step.
+    pub fn text(&self) -> String {
+        match &self.why {
+            Some(why) => format!("{}\n{}\nNext: {}", self.fact, why, self.next),
+            None => format!("{}\nNext: {}", self.fact, self.next),
+        }
+    }
+}
+
 /// A success as its JSON, a failure as a 500 [`Problem`] naming what went wrong.
 pub fn answer<T: Serialize>(result: Result<T, BoxError>) -> Response {
     match result {
