@@ -41,7 +41,7 @@ flowchart TD
 
 | Piece | What it is |
 |---|---|
-| `crates/declare` | The generator binary `bmo-app-declare`: reads a manifest, writes or checks its readings |
+| `crates/declare` | The generator binary `bmo-app-declare`: reads a manifest, writes or checks its readings; its library holds the manifest's model, the readings' read, check and write, and one renderer a reading — the testbed declaration, the install declaration, the systemd units, the web scaffold's defaults and the removal script — each a module of its own |
 | `crates/service` | The library `bmo-app-service`: the JSON answer envelope, the serving loop and its graceful stop, the health verb's checks (`docs/service.md`) |
 | `crates/app` | The unit command `bmo-app`: the `bmo app` verbs that front the scaffold and the generator from one place (`docs/app-command.md`) |
 | `templates/` | The text every application's units, removal script, web check and web defaults are made of |
