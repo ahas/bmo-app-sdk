@@ -59,3 +59,7 @@
   link stands across releases, so it names whichever release is live and never dangles once an
   older one is pruned. The repository runs no service, starts no unit and installs nothing:
   this linked command is its only deployment.
+- **Its deploy root is `~/.local/share/bmo-app`,** apart from `~/.local/share/bmo-app-sdk`, the
+  place an application's deployment lays the SDK's committed tree its build reads by a path: one
+  folder holding both would be laid over by each application's deployment, and the command would
+  go with it.

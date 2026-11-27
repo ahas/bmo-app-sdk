@@ -28,7 +28,9 @@ binaries = ["bmo-app"]
 # The repository runs no service, so the deployment starts no unit. What it deploys is the
 # one command it lends the machine.
 [deploy]
-root = "~/.local/share/bmo-app-sdk"
+# Its own root, apart from the SDK tree an application's deployment lays at ~/.local/share/bmo-app-sdk
+# for its build to read by a path (docs/app-command.md, 「How it reaches a machine」).
+root = "~/.local/share/bmo-app"
 data_root = "~/.local/share/bmo/data"
 units = []
 
@@ -42,5 +44,5 @@ phase = "before-flip"
 command = '''
 set -eu
 mkdir -p "$HOME/.local/bin"
-ln -sfn "$HOME/.local/share/bmo-app-sdk/deploy/bin/bmo-app" "$HOME/.local/bin/bmo-app"
+ln -sfn "$HOME/.local/share/bmo-app/deploy/bin/bmo-app" "$HOME/.local/bin/bmo-app"
 '''
