@@ -542,3 +542,33 @@ fn a_manifest_that_does_not_hold_together_is_refused_naming_why() {
         );
     }
 }
+
+#[test]
+fn a_manifest_naming_a_holder_declares_it_after_health_and_withdraws_it_on_removal() {
+    let held = CONSOLE_MANIFEST.replacen(
+        "data_folder = \"qa-console\"\n",
+        "data_folder = \"qa-console\"\nholder = \"qa-console\"\n",
+        1,
+    );
+    let testbed: toml::Value =
+        toml::from_str(&generated_for(&held, "testbed.toml")).expect("the reading is valid TOML");
+    let steps = testbed["deploy"]["step"].as_array().expect("deploy steps");
+    let declare = steps
+        .iter()
+        .find(|step| step["id"].as_str() == Some("holder-declare"))
+        .expect("a holder-declare step");
+
+    assert_eq!(declare["phase"].as_str(), Some("after-health"));
+    assert!(
+        declare["command"]
+            .as_str()
+            .unwrap()
+            .contains("holder declare deploy/brain-holder.toml")
+    );
+    assert!(generated_for(&held, "scripts/remove.sh").contains("HOLDER=\"qa-console\""));
+
+    // A manifest naming none declares nothing and withdraws nothing.
+    let plain = generated_for(CONSOLE_MANIFEST, "testbed.toml");
+    assert!(!plain.contains("holder-declare"));
+    assert!(generated_for(CONSOLE_MANIFEST, "scripts/remove.sh").contains("HOLDER=\"\""));
+}

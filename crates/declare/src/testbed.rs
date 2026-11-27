@@ -178,6 +178,28 @@ pub(crate) fn render_check(m: &Manifest) -> String {
 
 /// The deploy section and the family's steps, in the order they stand in the reading.
 pub(crate) fn render_deploy(m: &Manifest) -> String {
+    let mut out = render_deploy_steps(m);
+    if m.holder.is_some() {
+        let declare = script_command(&[
+            "set -eu",
+            "brain=\"$HOME/.local/share/bmo-brain/deploy/bin/bmo-brain\"",
+            "[ -x \"$brain\" ] || exit 0",
+            &format!("\"$brain\" holder declare {HOLDER_FILE}"),
+        ]);
+        let _ = write!(
+            out,
+            "\n# This service's standing line in every agent's brain, declared once the service is up (the brain's\n\
+             # docs/boundary-api.md, 「Declarations and holders」); a machine with no brain passes.\n{}",
+            deploy_step("holder-declare", "after-health", &declare)
+        );
+    }
+    out
+}
+
+/// The file a holder's set stands in, in the repository and in every release.
+pub const HOLDER_FILE: &str = "deploy/brain-holder.toml";
+
+fn render_deploy_steps(m: &Manifest) -> String {
     let mut out = String::from(
         "\n# The service's deploy tree and its data, kept apart from every release.\n[deploy]\n",
     );

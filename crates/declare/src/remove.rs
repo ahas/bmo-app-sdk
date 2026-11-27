@@ -12,6 +12,7 @@ pub(crate) fn render_remove(m: &Manifest) -> String {
         )
         .replace("@@data_folder@@", m.data_folder.as_deref().unwrap_or(""))
         .replace("@@checkout@@", m.checkout.as_deref().unwrap_or(""))
+        .replace("@@holder@@", m.holder.as_deref().unwrap_or(""))
         .replace("@@deploy_root@@", &m.deploy_root.replace("~/", "$HOME/"))
         .replace("@@data_root@@", &m.data_root.replace("~/", "$HOME/"))
 }

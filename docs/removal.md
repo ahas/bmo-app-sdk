@@ -23,6 +23,8 @@
 3. **The tool goes where the application registered one:** a hosted tool is taken out of the
    tool host's registry by that host's own verb before its placed folder is taken with the
    tree; an application with no tool has nothing here.
+   Where the manifest names a `holder`, its set is withdrawn from the brain by the brain's own
+   `holder withdraw`; a machine with no brain has nothing here.
 4. **The deploy tree goes:** the releases, the build marks and the deploy link under the
    declared deploy root and nowhere else. The removal refuses a root that stands outside the
    home's share folder and outside `/srv/`, and refuses an empty one, so the paths it may

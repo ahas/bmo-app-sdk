@@ -54,6 +54,7 @@ refused.
 | `test_setup` | array | Lines the suite runs on a fresh tree before any unit, carried whole into the testbed's `[test] setup` |
 | `port_name` | string | The name the install declaration registers the service port under, where it is not `<name>.server` |
 | `data_folder` | string | The folder under the data root holding this application's own data, where the data root is the machine's shared one: removal takes that folder and never the root |
+| `holder` | string | The key the service's brain holder set is held by, its `held_by`; the set stands in `deploy/brain-holder.toml`, declared with the brain's `holder declare` once the service is up at every deployment and withdrawn with `holder withdraw` on removal |
 | `checkout` | path | Where the repository's checkout stands on the machine; removal takes that line out of the machine's checkout register |
 | `[[skill]]` | table | The service's own skill, passed into the install declaration (「Skills and memories」 below) |
 | `[[memory]]` | table | The service's own memory, passed likewise |

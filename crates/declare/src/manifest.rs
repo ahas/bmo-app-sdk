@@ -93,6 +93,10 @@ pub struct Manifest {
     /// the checkout register.
     #[serde(default)]
     pub checkout: Option<String>,
+    /// The key its brain holder set is held by, where it declares one from `deploy/brain-holder.toml`: declared at
+    /// every deployment and withdrawn on removal.
+    #[serde(default)]
+    pub holder: Option<String>,
 }
 
 /// The web app half of an application: a page server beside the service.
