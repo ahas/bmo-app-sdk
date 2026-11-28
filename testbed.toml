@@ -14,7 +14,7 @@ languages = ["cargo"]
 quick = ["korean", "layout", "dependencies", "personal-data"]
 korean_ledger = "korean-ledger.json"
 # A base library stands on registry crates alone.
-base_libraries = []
+base_libraries = ["bmo-chain"]
 
 # The scripts the generator hands out and the scaffold runs are shell; the testbed has no
 # shell language, so their syntax is checked as a step of its own.

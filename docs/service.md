@@ -29,6 +29,16 @@
   step its reader takes now, and `why` where the fact alone does not say; its `text` is the three as one text,
   the next step on a line opening `Next:`. The application hands that text to whatever carries the notice.
 
+## The delegation chain
+
+- **An application asks the delegation chain through `Chain`,** the base library `bmo-chain` the skeleton hands
+  on (bmo-chat's `docs/chain.md`): its kinds declared under its own name, a kind resolved for a person or a unit,
+  a link read or written in a caller's name. The application says which resources are an organisation's or a
+  person's and which kinds guard them; the chain says who may.
+- **What the chain does not allow is refused.** `allows` answers true only where the chain resolves the flag true
+  for the subject: an undeclared kind, a subject the chain does not hold, a service not named or not answering,
+  and a flag left unsaid with no default each answer false, the superadministrator's call among them.
+
 ## The serving loop
 
 - `serve` answers on a bound listener with a router and returns once shutdown begins,

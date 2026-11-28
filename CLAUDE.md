@@ -23,8 +23,8 @@ These rules hold every change to this repository.
   that application's manifest, and the templates hold only what is alike.
 - **Mechanism here, policy there:** the skeleton supplies the answer envelope, the serving
   loop and the checks; the application supplies the router, the stores and the domain.
-- **Dependencies:** crates from the registry alone, declared base libraries none. The
-  testbed's `dependencies` check holds this.
+- **Dependencies:** crates from the registry, and of the base libraries `bmo-chain` alone, the delegation
+  chain's client the skeleton hands every application. The testbed's `dependencies` check holds this.
 - **No hand-written parser for a general format.** TOML is read by a TOML library; the
   manifest's own syntax is this project's reading.
 
